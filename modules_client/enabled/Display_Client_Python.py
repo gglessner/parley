@@ -7,6 +7,10 @@ module_description = "print Python binary data on the screen from the client"
 
 def module_function(message_num, source_ip, source_port, dest_ip, dest_port, message_data):
 
+    # Convert bytearray to bytes if necessary
+    if isinstance(message_data, bytearray):
+        message_data = bytes(message_data)
+
     # Construct the output string
     output = []
     

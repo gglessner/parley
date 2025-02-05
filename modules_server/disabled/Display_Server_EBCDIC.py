@@ -23,6 +23,6 @@ def module_function(message_num, source_ip, source_port, dest_ip, dest_port, mes
 
     # Atomic writes to screen and log file
     print(full_output)
-    write_to_log(source_ip, source_port, dest_ip, dest_port, full_output)
+    write_to_log(dest_ip, dest_port, source_ip, source_port, full_output)
 
     return message_data

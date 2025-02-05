@@ -26,7 +26,7 @@ import argparse
 import threading
 import select
 
-VERSION = "1.0"
+VERSION = "1.1"
 TAGLINE = "Multi-Threaded Modular TCP Penetration Testing Proxy with TLS support"
 
 # Construct the path to module_libs in an OS-agnostic way

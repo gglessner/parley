@@ -26,7 +26,7 @@ import argparse
 import threading
 import select
 
-VERSION = "1.1"
+VERSION = "1.2.0"
 TAGLINE = "Multi-Threaded Modular TCP Penetration Testing Proxy with TLS support"
 
 # Construct the path to module_libs in an OS-agnostic way
@@ -36,7 +36,7 @@ module_libs_path = os.path.join(os.path.dirname(__file__), 'module_libs')
 if module_libs_path not in sys.path:
     sys.path.insert(0, module_libs_path)
 
-def handle_client(client_socket, target_host, target_port, use_tls_client, use_tls_server, certfile, keyfile, cipher, ssl_version, client_certfile, client_keyfile):
+def handle_client(client_socket, target_host, target_port, use_tls_client, use_tls_server, certfile, keyfile, cipher, ssl_version, client_certfile, client_keyfile, no_verify=False):
     # Create a new socket for forwarding
     forward_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     forward_socket.connect((target_host, target_port))
@@ -49,6 +49,9 @@ def handle_client(client_socket, target_host, target_port, use_tls_client, use_t
 
     if use_tls_server:
         context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        if no_verify:
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
         if client_certfile and client_keyfile:
             context.load_cert_chain(certfile=client_certfile, keyfile=client_keyfile)
         if cipher:
@@ -118,7 +121,7 @@ def handle_client(client_socket, target_host, target_port, use_tls_client, use_t
         for sock in sockets:
             sock.close()
 
-def start_proxy(listen_host, listen_port, target_host, target_port, use_tls_client, use_tls_server, certfile, keyfile, client_certfile, client_keyfile, cipher, ssl_version):
+def start_proxy(listen_host, listen_port, target_host, target_port, use_tls_client, use_tls_server, certfile, keyfile, client_certfile, client_keyfile, cipher, ssl_version, no_verify=False):
     # Create a socket to listen on
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -132,7 +135,7 @@ def start_proxy(listen_host, listen_port, target_host, target_port, use_tls_clie
         client_ip, client_port = client_socket.getpeername()
         print(f"[+] New server socket thread started for {client_ip}:{client_port}")
         # Start a new thread for each client connection
-        client_thread = threading.Thread(target=handle_client, args=(client_socket, target_host, target_port, use_tls_client, use_tls_server, certfile, keyfile, cipher, ssl_version, client_certfile, client_keyfile))
+        client_thread = threading.Thread(target=handle_client, args=(client_socket, target_host, target_port, use_tls_client, use_tls_server, certfile, keyfile, cipher, ssl_version, client_certfile, client_keyfile, no_verify))
         client_thread.start()
 
 if __name__ == "__main__":
@@ -150,6 +153,7 @@ if __name__ == "__main__":
     parser.add_argument('--client_keyfile', help='Path to client SSL key file for server connection')
     parser.add_argument('--cipher', help='Cipher suite to use for TLS')
     parser.add_argument('--ssl_version', choices=['TLSv1', 'TLSv1.1', 'TLSv1.2'], help='SSL/TLS version to use')
+    parser.add_argument('--no_verify', action='store_true', help='Skip TLS certificate verification for server connection (default: False)')
 
     args = parser.parse_args()
 
@@ -200,4 +204,4 @@ if __name__ == "__main__":
 
     start_proxy(args.listen_host, args.listen_port, args.target_host, args.target_port,
                 use_tls_client, use_tls_server, args.certfile, args.keyfile, args.client_certfile, args.client_keyfile,
-                args.cipher, args.ssl_version)
+                args.cipher, args.ssl_version, args.no_verify)
